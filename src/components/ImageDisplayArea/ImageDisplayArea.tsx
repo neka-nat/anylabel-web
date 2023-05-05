@@ -19,6 +19,9 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) 
     selectAnnotation,
     updateAnnotation,
   } = useContext(AnnotationContext);
+
+  const [rectangleStart, setRectangleStart] = useState<{ x: number; y: number } | undefined>(undefined);
+
   const selectedAnnotation = useMemo(
     () =>
       annotations.find(
@@ -37,24 +40,28 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) 
   }, []);
 
   const handleImageClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
-    // 画像上でのクリック座標を取得
-    const x = event.evt.x;
-    const y = event.evt.y;
+    if (!rectangleStart) {
+      const x = event.evt.x;
+      const y = event.evt.y;
+      setRectangleStart({ x, y });
+    } else {
+      const x = event.evt.x;
+      const y = event.evt.y;
 
-    // 新しい矩形アノテーションを作成
-    const newAnnotation: RectangleAnnotation = {
-      id: uuidv4(),
-      type: 'rectangle',
-      label: 'New Rectangle',
-      x: x,
-      y: y,
-      width: 100,
-      height: 50,
-      color: 'rgba(0, 255, 0, 0.5)',
-    };
+      const newAnnotation: RectangleAnnotation = {
+        id: uuidv4(),
+        type: 'rectangle',
+        label: 'New Rectangle',
+        x: rectangleStart.x,
+        y: rectangleStart.y,
+        width: x - rectangleStart.x,
+        height: y - rectangleStart.y,
+        color: 'rgba(0, 255, 0, 0.5)',
+      };
 
-    // 新しいアノテーションをannotations配列に追加
-    addAnnotation(newAnnotation);
+      addAnnotation(newAnnotation);
+      setRectangleStart(undefined);
+    }
   };
 
   return (

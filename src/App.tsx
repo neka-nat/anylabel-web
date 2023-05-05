@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import ImageDisplayArea from './components/ImageDisplayArea';
+import { ImageDisplayArea } from './components/ImageDisplayArea';
 import { DownloadButton } from './components/DownloadButton';
 import { AnnotationProvider } from './contexts/AnnotationContext';
 

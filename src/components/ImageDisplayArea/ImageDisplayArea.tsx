@@ -11,7 +11,7 @@ type ImageDisplayAreaProps = {
   imageUrl: string;
 };
 
-const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) => {
+export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) => {
   const {
     annotations,
     selectedAnnotationId,
@@ -87,5 +87,3 @@ const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) => {
     </div>
   );
 };
-
-export default ImageDisplayArea;

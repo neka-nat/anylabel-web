@@ -5,13 +5,16 @@ import { RectangleAnnotationComponent } from '../Annotation/RectangleAnnotationC
 import { AnnotationContext } from '../../contexts/AnnotationContext';
 import { RectangleAnnotation } from '../../types';
 import { EditAnnotationUI } from '../EditAnnotationUI';
+import { AnnotationList } from '../AnnotationList';
 import { v4 as uuidv4 } from 'uuid';
 
 type ImageDisplayAreaProps = {
   imageUrl: string;
 };
 
-export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) => {
+export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
+  imageUrl,
+}) => {
   const {
     annotations,
     selectedAnnotationId,
@@ -20,7 +23,12 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) 
     updateAnnotation,
   } = useContext(AnnotationContext);
 
-  const [rectangleStart, setRectangleStart] = useState<{ x: number; y: number } | undefined>(undefined);
+  const [rectangleStart, setRectangleStart] = useState<
+    { x: number; y: number } | undefined
+  >(undefined);
+  const [previewRectangle, setPreviewRectangle] = useState<
+    RectangleAnnotation | undefined
+  >(undefined);
 
   const selectedAnnotation = useMemo(
     () =>
@@ -61,14 +69,43 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) 
 
       addAnnotation(newAnnotation);
       setRectangleStart(undefined);
+      setPreviewRectangle(undefined);
     }
+  };
+
+  const handleMouseMove = (event: Konva.KonvaEventObject<MouseEvent>) => {
+    if (rectangleStart) {
+      const x = event.evt.x;
+      const y = event.evt.y;
+      const width = x - rectangleStart.x;
+      const height = y - rectangleStart.y;
+
+      setPreviewRectangle({
+        id: 'preview',
+        type: 'rectangle',
+        x: rectangleStart.x,
+        y: rectangleStart.y,
+        width,
+        height,
+        label: 'default',
+      });
+    }
+  };
+
+  const handleSelectAnnotation = (id: string) => {
+    selectAnnotation(id);
   };
 
   return (
     <div>
-      <Stage width={image?.width} height={image?.height}>
+      <Stage
+        width={image?.width}
+        height={image?.height}
+        onClick={handleImageClick}
+        onMouseMove={handleMouseMove}
+      >
         <Layer>
-          {image && <KonvaImage image={image} onClick={handleImageClick} />}
+          {image && <KonvaImage image={image} />}
           {annotations.map((annotation) => (
             <RectangleAnnotationComponent
               key={annotation.id}
@@ -76,13 +113,21 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({ imageUrl }) 
               onUpdate={(updatedAnnotation) => {
                 updateAnnotation(annotation.id, updatedAnnotation);
               }}
-              onSelect={() => {
-                selectAnnotation(annotation.id);
-              }}
             />
           ))}
+          {previewRectangle && (
+            <RectangleAnnotationComponent
+              key={previewRectangle.id}
+              annotation={previewRectangle}
+              onUpdate={() => {}}
+            />
+          )}
         </Layer>
       </Stage>
+      <AnnotationList
+        annotations={annotations}
+        onSelectAnnotation={handleSelectAnnotation}
+      />
       {selectedAnnotation && (
         <EditAnnotationUI
           annotation={selectedAnnotation}

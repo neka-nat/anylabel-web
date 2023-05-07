@@ -6,6 +6,14 @@ type EditAnnotationUIProps = {
   onUpdate: (updatedAnnotation: Partial<Annotation>) => void;
 };
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export const EditAnnotationUI: React.FC<EditAnnotationUIProps> = ({
   annotation,
   onUpdate,
@@ -14,7 +22,6 @@ export const EditAnnotationUI: React.FC<EditAnnotationUIProps> = ({
     return <div>Please select an annotation to edit.</div>;
   }
 
-  // フォームの状態を管理
   const [label, setLabel] = useState(annotation.label);
   const [color, setColor] = useState(annotation.color || '');
 
@@ -27,7 +34,7 @@ export const EditAnnotationUI: React.FC<EditAnnotationUIProps> = ({
 
   // 色が変更されたときの処理
   const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor = event.target.value;
+    const newColor = hexToRgba(event.target.value, 0.5);
     setColor(newColor);
     onUpdate({ ...annotation, color: newColor });
   };

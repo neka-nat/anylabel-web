@@ -6,15 +6,13 @@ import Konva from 'konva';
 type RectangleAnnotationComponentProps = {
   annotation: RectangleAnnotation;
   onUpdate: (updatedAnnotation: RectangleAnnotation) => void;
-  onSelect: () => void;
 };
 
 export const RectangleAnnotationComponent: React.FC<
   RectangleAnnotationComponentProps
-> = ({ annotation, onUpdate, onSelect }) => {
+> = ({ annotation, onUpdate }) => {
   const handleDragStart = (e: Konva.KonvaEventObject<DragEvent>) => {
     e.cancelBubble = true;
-    onSelect();
   };
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {

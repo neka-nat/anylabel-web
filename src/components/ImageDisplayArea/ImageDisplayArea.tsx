@@ -92,10 +92,6 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
     }
   };
 
-  const handleSelectAnnotation = (id: string) => {
-    selectAnnotation(id);
-  };
-
   return (
     <div>
       <Stage
@@ -126,7 +122,7 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
       </Stage>
       <AnnotationList
         annotations={annotations}
-        onSelectAnnotation={handleSelectAnnotation}
+        onSelectAnnotation={selectAnnotation}
       />
       {selectedAnnotation && (
         <EditAnnotationUI

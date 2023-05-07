@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Annotation } from '../../types/annotation';
 
 type EditAnnotationUIProps = {
@@ -24,6 +24,11 @@ export const EditAnnotationUI: React.FC<EditAnnotationUIProps> = ({
 
   const [label, setLabel] = useState(annotation.label);
   const [color, setColor] = useState(annotation.color || '');
+
+  useEffect(() => {
+    setLabel(annotation.label);
+    setColor(annotation.color || '');
+  }, [annotation]);
 
   // ラベルが変更されたときの処理
   const handleLabelChange = (event: React.ChangeEvent<HTMLInputElement>) => {

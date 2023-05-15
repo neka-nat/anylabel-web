@@ -9,14 +9,12 @@ export type RectangleAnnotation = {
   color?: string;
 };
 
-export type CircleAnnotation = {
+export type PolygonAnnotation = {
   id: string;
-  type: 'circle';
+  type: "polygon";
   label: string;
-  centerX: number;
-  centerY: number;
-  radius: number;
+  points: { x: number, y: number }[]; // ポリゴンの各頂点の座標
   color?: string;
-};
+}
 
-export type Annotation = RectangleAnnotation | CircleAnnotation;
+export type Annotation = RectangleAnnotation | PolygonAnnotation;

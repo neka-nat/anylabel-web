@@ -1,2 +1,2 @@
-export * from './CircleAnnotationComponent';
 export * from './RectangleAnnotationComponent';
+export * from './PolygonAnnotationComponent';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Annotation } from '../../types/annotation';
-import { labelToColor } from '../../utils/color'
+import { labelToColor } from '../../utils/color';
 
 type EditAnnotationUIProps = {
   annotation: Annotation | undefined;

@@ -2,15 +2,15 @@ import React, { createContext, useState } from 'react';
 import { Annotation } from '../types/annotation';
 
 type AnnotationContextType = {
-  annotations: Annotation[];
-  selectedAnnotationId: string | undefined;
-  addAnnotation: (annotation: Annotation) => void;
+  annotations: Annotation[];  // アノテーションの配列
+  selectedAnnotationId: string | undefined;  // 選択されているアノテーションのID
+  addAnnotation: (annotation: Annotation) => void;  // アノテーションの追加
   updateAnnotation: (
     annotationId: string,
     updatedAnnotationData: Partial<Annotation>,
-  ) => void;
-  removeAnnotation: (annotationId: string) => void;
-  selectAnnotation: (annotationId: string | undefined) => void;
+  ) => void;  // アノテーションの更新
+  removeAnnotation: (annotationId: string) => void; // アノテーションの削除
+  selectAnnotation: (annotationId: string | undefined) => void;  // アノテーションの選択
 };
 
 const initialAnnotationContext: AnnotationContextType = {

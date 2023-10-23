@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState, useMemo } from 'react';
 import { Stage, Layer, Image as KonvaImage } from 'react-konva';
 import Konva from 'konva';
+import { PolygonAnnotationComponent } from '../Annotation/PolygonAnnotationComponent';
 import { RectangleAnnotationComponent } from '../Annotation/RectangleAnnotationComponent';
 import { AnnotationContext } from '../../contexts/AnnotationContext';
 import { RectangleAnnotation } from '../../types';
@@ -49,12 +50,12 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
 
   const handleImageClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
     if (!rectangleStart) {
-      const x = event.evt.x;
-      const y = event.evt.y;
+      const x = event.evt.offsetX;
+      const y = event.evt.offsetY;
       setRectangleStart({ x, y });
     } else {
-      const x = event.evt.x;
-      const y = event.evt.y;
+      const x = event.evt.offsetX;
+      const y = event.evt.offsetY;
 
       const newAnnotation: RectangleAnnotation = {
         id: uuidv4(),
@@ -75,8 +76,8 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
 
   const handleMouseMove = (event: Konva.KonvaEventObject<MouseEvent>) => {
     if (rectangleStart) {
-      const x = event.evt.x;
-      const y = event.evt.y;
+      const x = event.evt.offsetX;
+      const y = event.evt.offsetY;
       const width = x - rectangleStart.x;
       const height = y - rectangleStart.y;
 
@@ -103,13 +104,18 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
         <Layer>
           {image && <KonvaImage image={image} />}
           {annotations.map((annotation) => (
-            <RectangleAnnotationComponent
-              key={annotation.id}
-              annotation={annotation as RectangleAnnotation}
-              onUpdate={(updatedAnnotation) => {
-                updateAnnotation(annotation.id, updatedAnnotation);
-              }}
-            />
+            (annotation.type === 'rectangle') ?
+              <RectangleAnnotationComponent
+                key={annotation.id}
+                annotation={annotation as RectangleAnnotation}
+                onUpdate={(updatedAnnotation) => {
+                  updateAnnotation(annotation.id, updatedAnnotation);
+                }}
+              /> :
+              <PolygonAnnotationComponent
+                key={annotation.id}
+                annotation={annotation}
+              />
           ))}
           {previewRectangle && (
             <RectangleAnnotationComponent

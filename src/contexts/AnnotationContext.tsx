@@ -1,13 +1,19 @@
+'use client';
+
 import { createContext, useCallback, useContext, useState } from 'react';
-import type { Annotation } from '../types/annotation';
+import type { Annotation } from '@/types';
+
+type AnnotationType = 'rectangle' | 'polygon';
 
 interface AnnotationContextType {
   annotations: Annotation[];
   selectedAnnotationId: string | undefined;
+  currentAnnotationType: AnnotationType;
   addAnnotation: (annotation: Annotation) => void;
   updateAnnotation: (annotationId: string, updatedAnnotationData: Partial<Annotation>) => void;
   removeAnnotation: (annotationId: string) => void;
   selectAnnotation: (annotationId: string | undefined) => void;
+  setAnnotationType: (type: AnnotationType) => void;
 }
 
 const AnnotationContext = createContext<AnnotationContextType | null>(null);
@@ -27,6 +33,7 @@ interface AnnotationProviderProps {
 export function AnnotationProvider({ children }: AnnotationProviderProps) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string>();
+  const [currentAnnotationType, setCurrentAnnotationType] = useState<AnnotationType>('rectangle');
 
   const addAnnotation = useCallback((annotation: Annotation) => {
     setAnnotations(prev => [...prev, annotation]);
@@ -56,13 +63,19 @@ export function AnnotationProvider({ children }: AnnotationProviderProps) {
     setSelectedAnnotationId(annotationId);
   }, []);
 
+  const setAnnotationType = useCallback((type: AnnotationType) => {
+    setCurrentAnnotationType(type);
+  }, []);
+
   const value = {
     annotations,
     selectedAnnotationId,
+    currentAnnotationType,
     addAnnotation,
     updateAnnotation,
     removeAnnotation,
     selectAnnotation,
+    setAnnotationType,
   };
 
   return (

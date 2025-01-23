@@ -7,14 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { PolygonAnnotation } from '@/components/Annotation/PolygonAnnotationComponent';
 import { RectangleAnnotationComponent } from '@/components/Annotation/RectangleAnnotationComponent';
 import { useAnnotation } from '@/contexts/AnnotationContext';
-import type { RectangleAnnotation, Annotation } from '@/types';
+import type { RectangleAnnotation, Annotation, Point, PolygonAnnotation as PolygonAnnotationType } from '@/types';
 import { EditAnnotationUI } from '@/components/EditAnnotationUI';
 import { AnnotationList } from '@/components/AnnotationList';
-
-interface Point {
-  x: number;
-  y: number;
-}
 
 interface ImageDisplayAreaProps {
   imageUrl: string;
@@ -24,6 +19,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
   const {
     annotations,
     selectedAnnotationId,
+    currentAnnotationType,
     addAnnotation,
     selectAnnotation,
     updateAnnotation,
@@ -31,6 +27,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
 
   const [rectangleStart, setRectangleStart] = useState<Point>();
   const [previewRectangle, setPreviewRectangle] = useState<RectangleAnnotation>();
+  const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
   const [image, setImage] = useState<HTMLImageElement>();
 
   const selectedAnnotation = useMemo(
@@ -47,42 +44,62 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
   const handleImageClick = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
     const { offsetX: x, offsetY: y } = event.evt;
 
-    if (!rectangleStart) {
-      setRectangleStart({ x, y });
-      return;
+    if (currentAnnotationType === 'rectangle') {
+      if (!rectangleStart) {
+        setRectangleStart({ x, y });
+        return;
+      }
+
+      const newAnnotation: RectangleAnnotation = {
+        id: uuidv4(),
+        type: 'rectangle',
+        label: '新規矩形',
+        x: rectangleStart.x,
+        y: rectangleStart.y,
+        width: x - rectangleStart.x,
+        height: y - rectangleStart.y,
+        color: 'rgba(0, 255, 0, 0.5)',
+      };
+
+      addAnnotation(newAnnotation);
+      setRectangleStart(undefined);
+      setPreviewRectangle(undefined);
+    } else {
+      const newPoint = { x, y };
+      const updatedPoints = [...polygonPoints, newPoint];
+      setPolygonPoints(updatedPoints);
+
+      // ダブルクリックでポリゴンを完成させる
+      if (event.evt.detail === 2 && updatedPoints.length >= 3) {
+        const newAnnotation: PolygonAnnotationType = {
+          id: uuidv4(),
+          type: 'polygon',
+          label: '新規ポリゴン',
+          points: updatedPoints,
+          color: 'rgba(0, 255, 0, 0.5)',
+        };
+
+        addAnnotation(newAnnotation);
+        setPolygonPoints([]);
+      }
     }
-
-    const newAnnotation: RectangleAnnotation = {
-      id: uuidv4(),
-      type: 'rectangle',
-      label: 'New Rectangle',
-      x: rectangleStart.x,
-      y: rectangleStart.y,
-      width: x - rectangleStart.x,
-      height: y - rectangleStart.y,
-      color: 'rgba(0, 255, 0, 0.5)',
-    };
-
-    addAnnotation(newAnnotation);
-    setRectangleStart(undefined);
-    setPreviewRectangle(undefined);
-  }, [addAnnotation, rectangleStart]);
+  }, [addAnnotation, currentAnnotationType, polygonPoints, rectangleStart]);
 
   const handleMouseMove = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
-    if (!rectangleStart) return;
-
-    const { offsetX: x, offsetY: y } = event.evt;
-    setPreviewRectangle({
-      id: 'preview',
-      type: 'rectangle',
-      label: 'Preview',
-      x: rectangleStart.x,
-      y: rectangleStart.y,
-      width: x - rectangleStart.x,
-      height: y - rectangleStart.y,
-      color: 'rgba(0, 255, 0, 0.3)',
-    });
-  }, [rectangleStart]);
+    if (currentAnnotationType === 'rectangle' && rectangleStart) {
+      const { offsetX: x, offsetY: y } = event.evt;
+      setPreviewRectangle({
+        id: 'preview',
+        type: 'rectangle',
+        label: 'プレビュー',
+        x: rectangleStart.x,
+        y: rectangleStart.y,
+        width: x - rectangleStart.x,
+        height: y - rectangleStart.y,
+        color: 'rgba(0, 255, 0, 0.3)',
+      });
+    }
+  }, [currentAnnotationType, rectangleStart]);
 
   const handleAnnotationUpdate = useCallback((
     annotationId: string,
@@ -90,6 +107,19 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
   ) => {
     updateAnnotation(annotationId, updatedAnnotation);
   }, [updateAnnotation]);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      setRectangleStart(undefined);
+      setPreviewRectangle(undefined);
+      setPolygonPoints([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   if (!image) {
     return (
@@ -101,39 +131,59 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
 
   return (
     <div className="flex flex-col gap-4">
-      <Stage
-        width={image.width}
-        height={image.height}
-        onClick={handleImageClick}
-        onMouseMove={handleMouseMove}
-      >
-        <Layer>
-          <KonvaImage image={image} />
-          {annotations.map((annotation) => (
-            annotation.type === 'rectangle' ? (
+      <div className="bg-white p-4 rounded-lg shadow">
+        <div className="text-sm text-gray-500 mb-2">
+          {currentAnnotationType === 'rectangle'
+            ? '矩形: クリックして開始点を指定し、もう一度クリックして矩形を確定'
+            : 'ポリゴン: クリックして頂点を追加し、ダブルクリックで確定'
+          }
+        </div>
+        <Stage
+          width={image.width}
+          height={image.height}
+          onClick={handleImageClick}
+          onMouseMove={handleMouseMove}
+        >
+          <Layer>
+            <KonvaImage image={image} />
+            {annotations.map((annotation) => (
+              annotation.type === 'rectangle' ? (
+                <RectangleAnnotationComponent
+                  key={annotation.id}
+                  annotation={annotation as RectangleAnnotation}
+                  onUpdate={(updatedAnnotation) => handleAnnotationUpdate(annotation.id, updatedAnnotation)}
+                  isSelected={selectedAnnotationId === annotation.id}
+                />
+              ) : (
+                <PolygonAnnotation
+                  key={annotation.id}
+                  annotation={annotation}
+                  isSelected={selectedAnnotationId === annotation.id}
+                />
+              )
+            ))}
+            {previewRectangle && (
               <RectangleAnnotationComponent
-                key={annotation.id}
-                annotation={annotation as RectangleAnnotation}
-                onUpdate={(updatedAnnotation) => handleAnnotationUpdate(annotation.id, updatedAnnotation)}
-                isSelected={selectedAnnotationId === annotation.id}
+                key={previewRectangle.id}
+                annotation={previewRectangle}
+                onUpdate={() => {}}
               />
-            ) : (
+            )}
+            {polygonPoints.length > 0 && (
               <PolygonAnnotation
-                key={annotation.id}
-                annotation={annotation}
-                isSelected={selectedAnnotationId === annotation.id}
+                annotation={{
+                  id: 'preview',
+                  type: 'polygon',
+                  label: 'プレビュー',
+                  points: polygonPoints,
+                  color: 'rgba(0, 255, 0, 0.3)',
+                }}
+                isSelected={false}
               />
-            )
-          ))}
-          {previewRectangle && (
-            <RectangleAnnotationComponent
-              key={previewRectangle.id}
-              annotation={previewRectangle}
-              onUpdate={() => {}}
-            />
-          )}
-        </Layer>
-      </Stage>
+            )}
+          </Layer>
+        </Stage>
+      </div>
       <div className="flex gap-4">
         <AnnotationList
           annotations={annotations}

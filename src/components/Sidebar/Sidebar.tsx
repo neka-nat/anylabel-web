@@ -1,10 +1,13 @@
-import React from 'react';
+import { memo } from 'react';
 import { DownloadButton } from '../DownloadButton';
 
-export const Sidebar: React.FC = () => {
+export const Sidebar = memo(function Sidebar() {
   return (
-    <div className="h-screen w-48 fixed bg-gray-600 text-white p-4">
-      <DownloadButton />
-    </div>
+    <aside className="fixed top-0 left-0 h-screen w-64 bg-gray-800 text-white p-4 shadow-lg">
+      <h2 className="text-xl font-bold mb-4">ツール</h2>
+      <div className="space-y-4">
+        <DownloadButton />
+      </div>
+    </aside>
   );
-};
+});

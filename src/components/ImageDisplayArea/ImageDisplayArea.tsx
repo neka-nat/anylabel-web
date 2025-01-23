@@ -1,121 +1,119 @@
-import React, { useContext, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Stage, Layer, Image as KonvaImage } from 'react-konva';
-import Konva from 'konva';
-import { PolygonAnnotationComponent } from '../Annotation/PolygonAnnotationComponent';
+import type Konva from 'konva';
+import { v4 as uuidv4 } from 'uuid';
+import { PolygonAnnotation } from '../Annotation/PolygonAnnotationComponent';
 import { RectangleAnnotationComponent } from '../Annotation/RectangleAnnotationComponent';
-import { AnnotationContext } from '../../contexts/AnnotationContext';
-import { RectangleAnnotation } from '../../types';
+import { useAnnotation } from '../../contexts/AnnotationContext';
+import type { RectangleAnnotation, Annotation } from '../../types';
 import { EditAnnotationUI } from '../EditAnnotationUI';
 import { AnnotationList } from '../AnnotationList';
-import { v4 as uuidv4 } from 'uuid';
 
-type ImageDisplayAreaProps = {
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface ImageDisplayAreaProps {
   imageUrl: string;
-};
+}
 
-export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
-  imageUrl,
-}) => {
+export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: ImageDisplayAreaProps) {
   const {
     annotations,
     selectedAnnotationId,
     addAnnotation,
     selectAnnotation,
     updateAnnotation,
-  } = useContext(AnnotationContext);
+  } = useAnnotation();
 
-  const [rectangleStart, setRectangleStart] = useState<
-    { x: number; y: number } | undefined
-  >(undefined);
-  const [previewRectangle, setPreviewRectangle] = useState<
-    RectangleAnnotation | undefined
-  >(undefined);
+  const [rectangleStart, setRectangleStart] = useState<Point>();
+  const [previewRectangle, setPreviewRectangle] = useState<RectangleAnnotation>();
+  const [image, setImage] = useState<HTMLImageElement>();
 
   const selectedAnnotation = useMemo(
-    () =>
-      annotations.find(
-        (annotation) => annotation.id === selectedAnnotationId,
-      ) || undefined,
-    [annotations, selectedAnnotationId],
+    () => annotations.find((annotation) => annotation.id === selectedAnnotationId),
+    [annotations, selectedAnnotationId]
   );
 
-  const [image, setImage] = useState<HTMLImageElement | undefined>(undefined);
   useEffect(() => {
     const img = new window.Image();
     img.src = imageUrl;
-    img.onload = () => {
-      setImage(img);
-    };
-  }, []);
+    img.onload = () => setImage(img);
+  }, [imageUrl]);
 
-  const handleImageClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleImageClick = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
+    const { offsetX: x, offsetY: y } = event.evt;
+
     if (!rectangleStart) {
-      const x = event.evt.offsetX;
-      const y = event.evt.offsetY;
       setRectangleStart({ x, y });
-    } else {
-      const x = event.evt.offsetX;
-      const y = event.evt.offsetY;
-
-      const newAnnotation: RectangleAnnotation = {
-        id: uuidv4(),
-        type: 'rectangle',
-        label: 'New Rectangle',
-        x: rectangleStart.x,
-        y: rectangleStart.y,
-        width: x - rectangleStart.x,
-        height: y - rectangleStart.y,
-        color: 'rgba(0, 255, 0, 0.5)',
-      };
-
-      addAnnotation(newAnnotation);
-      setRectangleStart(undefined);
-      setPreviewRectangle(undefined);
+      return;
     }
-  };
 
-  const handleMouseMove = (event: Konva.KonvaEventObject<MouseEvent>) => {
-    if (rectangleStart) {
-      const x = event.evt.offsetX;
-      const y = event.evt.offsetY;
-      const width = x - rectangleStart.x;
-      const height = y - rectangleStart.y;
+    const newAnnotation: RectangleAnnotation = {
+      id: uuidv4(),
+      type: 'rectangle',
+      label: 'New Rectangle',
+      x: rectangleStart.x,
+      y: rectangleStart.y,
+      width: x - rectangleStart.x,
+      height: y - rectangleStart.y,
+      color: 'rgba(0, 255, 0, 0.5)',
+    };
 
-      setPreviewRectangle({
-        id: 'preview',
-        type: 'rectangle',
-        x: rectangleStart.x,
-        y: rectangleStart.y,
-        width,
-        height,
-        label: 'default',
-      });
-    }
-  };
+    addAnnotation(newAnnotation);
+    setRectangleStart(undefined);
+    setPreviewRectangle(undefined);
+  }, [addAnnotation, rectangleStart]);
+
+  const handleMouseMove = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
+    if (!rectangleStart) return;
+
+    const { offsetX: x, offsetY: y } = event.evt;
+    setPreviewRectangle({
+      id: 'preview',
+      type: 'rectangle',
+      label: 'Preview',
+      x: rectangleStart.x,
+      y: rectangleStart.y,
+      width: x - rectangleStart.x,
+      height: y - rectangleStart.y,
+      color: 'rgba(0, 255, 0, 0.3)',
+    });
+  }, [rectangleStart]);
+
+  const handleAnnotationUpdate = useCallback((
+    annotationId: string,
+    updatedAnnotation: Partial<Annotation>
+  ) => {
+    updateAnnotation(annotationId, updatedAnnotation);
+  }, [updateAnnotation]);
+
+  if (!image) return null;
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <Stage
-        width={image?.width}
-        height={image?.height}
+        width={image.width}
+        height={image.height}
         onClick={handleImageClick}
         onMouseMove={handleMouseMove}
       >
         <Layer>
-          {image && <KonvaImage image={image} />}
+          <KonvaImage image={image} />
           {annotations.map((annotation) => (
-            (annotation.type === 'rectangle') ?
+            annotation.type === 'rectangle' ? (
               <RectangleAnnotationComponent
                 key={annotation.id}
                 annotation={annotation as RectangleAnnotation}
-                onUpdate={(updatedAnnotation) => {
-                  updateAnnotation(annotation.id, updatedAnnotation);
-                }}
-              /> :
-              <PolygonAnnotationComponent
+                onUpdate={(updatedAnnotation) => handleAnnotationUpdate(annotation.id, updatedAnnotation)}
+              />
+            ) : (
+              <PolygonAnnotation
                 key={annotation.id}
                 annotation={annotation}
               />
+            )
           ))}
           {previewRectangle && (
             <RectangleAnnotationComponent
@@ -126,18 +124,20 @@ export const ImageDisplayArea: React.FC<ImageDisplayAreaProps> = ({
           )}
         </Layer>
       </Stage>
-      <AnnotationList
-        annotations={annotations}
-        onSelectAnnotation={selectAnnotation}
-      />
-      {selectedAnnotation && (
-        <EditAnnotationUI
-          annotation={selectedAnnotation}
-          onUpdate={(updatedAnnotationData) =>
-            updateAnnotation(selectedAnnotation.id, updatedAnnotationData)
-          }
+      <div className="flex gap-4">
+        <AnnotationList
+          annotations={annotations}
+          onSelectAnnotation={selectAnnotation}
         />
-      )}
+        {selectedAnnotation && (
+          <EditAnnotationUI
+            annotation={selectedAnnotation}
+            onUpdate={(updatedAnnotationData) =>
+              handleAnnotationUpdate(selectedAnnotation.id, updatedAnnotationData)
+            }
+          />
+        )}
+      </div>
     </div>
   );
-};
+});

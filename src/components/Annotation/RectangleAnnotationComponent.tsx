@@ -1,80 +1,77 @@
-import React, { useRef } from 'react';
-import { RectangleAnnotation } from '../../types/annotation';
+import { memo, useCallback, useRef } from 'react';
+import type { RectangleAnnotation } from '../../types/annotation';
 import { Rect, Circle, Group } from 'react-konva';
-import Konva from 'konva';
+import type Konva from 'konva';
 
-type RectangleAnnotationComponentProps = {
+interface RectangleAnnotationProps {
   annotation: RectangleAnnotation;
-  onUpdate: (updatedAnnotation: RectangleAnnotation) => void;
-};
+  onUpdate: (updatedAnnotation: Partial<RectangleAnnotation>) => void;
+  isSelected?: boolean;
+}
 
-export const RectangleAnnotationComponent: React.FC<
-  RectangleAnnotationComponentProps
-> = ({ annotation, onUpdate }) => {
-  const handleDragStart = (e: Konva.KonvaEventObject<DragEvent>) => {
+export const RectangleAnnotationComponent = memo(function RectangleAnnotationComponent({
+  annotation,
+  onUpdate,
+  isSelected = false,
+}: RectangleAnnotationProps) {
+  const handleRef = useRef<Konva.Circle>(null);
+
+  const handleDragStart = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
     e.cancelBubble = true;
-  };
+  }, []);
 
-  const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
-    const updatedAnnotation = {
-      ...annotation,
-      x: e.target.position().x,
-      y: e.target.position().y,
-    };
-    onUpdate(updatedAnnotation);
-  };
-
-  const handleDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
-    const rect = e.target;
-    const newPosition = rect.position();
-
+  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    const position = e.target.position();
     onUpdate({
-      ...annotation,
-      x: newPosition.x,
-      y: newPosition.y,
+      x: position.x,
+      y: position.y,
+    });
+  }, [onUpdate]);
+
+  const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    const position = e.target.position();
+    onUpdate({
+      x: position.x,
+      y: position.y,
     });
 
-    // Move the circle along with the rectangle
-    handleRef.current.position({
-      x: newPosition.x + annotation.width,
-      y: newPosition.y + annotation.height,
-    });
-  };
-
-  const handleRef = useRef<any>(undefined);
-
-  const handleResizeStart = (e: Konva.KonvaEventObject<DragEvent>) => {
-    e.cancelBubble = true;
-  };
-
-  const handleResizeEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
     if (handleRef.current) {
-      onUpdate({
-        ...annotation,
-        width: handleRef.current.x() - annotation.x,
-        height: handleRef.current.y() - annotation.y,
+      handleRef.current.position({
+        x: position.x + annotation.width,
+        y: position.y + annotation.height,
       });
     }
-  };
+  }, [annotation.height, annotation.width, onUpdate]);
 
-  const handleResizeMove = (e: Konva.KonvaEventObject<DragEvent>) => {
-    const circle = e.target;
-    const newPosition = circle.position();
-    const newWidth = newPosition.x - annotation.x;
-    const newHeight = newPosition.y - annotation.y;
+  const handleResizeStart = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    e.cancelBubble = true;
+  }, []);
+
+  const handleResizeEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (handleRef.current) {
+      const position = handleRef.current.position();
+      onUpdate({
+        width: position.x - annotation.x,
+        height: position.y - annotation.y,
+      });
+    }
+  }, [annotation.x, annotation.y, onUpdate]);
+
+  const handleResizeMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    const position = e.target.position();
+    const newWidth = position.x - annotation.x;
+    const newHeight = position.y - annotation.y;
 
     onUpdate({
-      ...annotation,
       width: newWidth,
       height: newHeight,
     });
 
-    // Move the circle back to the corner of the rectangle
-    circle.position({
+    e.target.position({
       x: annotation.x + newWidth,
       y: annotation.y + newHeight,
     });
-  };
+  }, [annotation.x, annotation.y, onUpdate]);
 
   return (
     <Group>
@@ -84,9 +81,9 @@ export const RectangleAnnotationComponent: React.FC<
         width={annotation.width}
         height={annotation.height}
         fill={annotation.color || 'rgba(0, 255, 0, 0.5)'}
-        strokeWidth={2}
-        stroke="black"
-        draggable={true}
+        stroke={isSelected ? '#000' : 'transparent'}
+        strokeWidth={isSelected ? 2 : 0}
+        draggable
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragMove={handleDragMove}
@@ -96,12 +93,12 @@ export const RectangleAnnotationComponent: React.FC<
         x={annotation.x + annotation.width}
         y={annotation.y + annotation.height}
         radius={5}
-        fill="black"
-        draggable={true}
+        fill={isSelected ? '#000' : '#666'}
+        draggable
         onDragStart={handleResizeStart}
         onDragEnd={handleResizeEnd}
         onDragMove={handleResizeMove}
       />
     </Group>
   );
-};
+});

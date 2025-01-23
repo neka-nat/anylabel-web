@@ -1,78 +1,73 @@
-import React, { createContext, useState } from 'react';
-import { Annotation } from '../types/annotation';
+import { createContext, useCallback, useContext, useState } from 'react';
+import type { Annotation } from '../types/annotation';
 
-type AnnotationContextType = {
-  annotations: Annotation[];  // アノテーションの配列
-  selectedAnnotationId: string | undefined;  // 選択されているアノテーションのID
-  addAnnotation: (annotation: Annotation) => void;  // アノテーションの追加
-  updateAnnotation: (
-    annotationId: string,
-    updatedAnnotationData: Partial<Annotation>,
-  ) => void;  // アノテーションの更新
-  removeAnnotation: (annotationId: string) => void; // アノテーションの削除
-  selectAnnotation: (annotationId: string | undefined) => void;  // アノテーションの選択
-};
+interface AnnotationContextType {
+  annotations: Annotation[];
+  selectedAnnotationId: string | undefined;
+  addAnnotation: (annotation: Annotation) => void;
+  updateAnnotation: (annotationId: string, updatedAnnotationData: Partial<Annotation>) => void;
+  removeAnnotation: (annotationId: string) => void;
+  selectAnnotation: (annotationId: string | undefined) => void;
+}
 
-const initialAnnotationContext: AnnotationContextType = {
-  annotations: [],
-  selectedAnnotationId: undefined,
-  addAnnotation: () => {},
-  updateAnnotation: () => {},
-  removeAnnotation: () => {},
-  selectAnnotation: () => {},
-};
+const AnnotationContext = createContext<AnnotationContextType | null>(null);
 
-// コンテキストの作成
-export const AnnotationContext = createContext<AnnotationContextType>(
-  initialAnnotationContext,
-);
+export function useAnnotation() {
+  const context = useContext(AnnotationContext);
+  if (!context) {
+    throw new Error('useAnnotation must be used within an AnnotationProvider');
+  }
+  return context;
+}
 
-// コンテキストプロバイダコンポーネント
-export const AnnotationProvider = ({
-  children,
-}: {
+interface AnnotationProviderProps {
   children: React.ReactNode;
-}) => {
+}
+
+export function AnnotationProvider({ children }: AnnotationProviderProps) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [selectedAnnotationId, setSelectedAnnotationId] = useState<
-    string | undefined
-  >();
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string>();
 
-  const addAnnotation = (annotation: Annotation) => {
-    setAnnotations((prevAnnotations) => [...prevAnnotations, annotation]);
-  };
+  const addAnnotation = useCallback((annotation: Annotation) => {
+    setAnnotations(prev => [...prev, annotation]);
+  }, []);
 
-  const updateAnnotation = (
+  const updateAnnotation = useCallback((
     annotationId: string,
-    updatedAnnotationData: Partial<Annotation>,
+    updatedAnnotationData: Partial<Annotation>
   ) => {
-    setAnnotations(
-      (prevAnnotations) =>
-        prevAnnotations.map((annotation) => {
-          if (annotation.id === annotationId) {
-            return { ...annotation, ...updatedAnnotationData };
-          }
-          return annotation;
-        }) as Annotation[],
+    setAnnotations(prev =>
+      prev.map(annotation =>
+        annotation.id === annotationId
+          ? { ...annotation, ...updatedAnnotationData } as Annotation
+          : annotation
+      )
     );
-  };
+  }, []);
 
-  const selectAnnotation = (annotationId: string | undefined) => {
+  const removeAnnotation = useCallback((annotationId: string) => {
+    setAnnotations(prev => prev.filter(annotation => annotation.id !== annotationId));
+    if (selectedAnnotationId === annotationId) {
+      setSelectedAnnotationId(undefined);
+    }
+  }, [selectedAnnotationId]);
+
+  const selectAnnotation = useCallback((annotationId: string | undefined) => {
     setSelectedAnnotationId(annotationId);
+  }, []);
+
+  const value = {
+    annotations,
+    selectedAnnotationId,
+    addAnnotation,
+    updateAnnotation,
+    removeAnnotation,
+    selectAnnotation,
   };
 
   return (
-    <AnnotationContext.Provider
-      value={{
-        annotations,
-        selectedAnnotationId,
-        addAnnotation,
-        updateAnnotation,
-        selectAnnotation,
-        removeAnnotation: () => {},
-      }}
-    >
+    <AnnotationContext.Provider value={value}>
       {children}
     </AnnotationContext.Provider>
   );
-};
+}

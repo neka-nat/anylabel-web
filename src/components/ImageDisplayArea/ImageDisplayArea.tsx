@@ -1,13 +1,15 @@
+'use client';
+
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Stage, Layer, Image as KonvaImage } from 'react-konva';
 import type Konva from 'konva';
 import { v4 as uuidv4 } from 'uuid';
-import { PolygonAnnotation } from '../Annotation/PolygonAnnotationComponent';
-import { RectangleAnnotationComponent } from '../Annotation/RectangleAnnotationComponent';
-import { useAnnotation } from '../../contexts/AnnotationContext';
-import type { RectangleAnnotation, Annotation } from '../../types';
-import { EditAnnotationUI } from '../EditAnnotationUI';
-import { AnnotationList } from '../AnnotationList';
+import { PolygonAnnotation } from '@/components/Annotation/PolygonAnnotationComponent';
+import { RectangleAnnotationComponent } from '@/components/Annotation/RectangleAnnotationComponent';
+import { useAnnotation } from '@/contexts/AnnotationContext';
+import type { RectangleAnnotation, Annotation } from '@/types';
+import { EditAnnotationUI } from '@/components/EditAnnotationUI';
+import { AnnotationList } from '@/components/AnnotationList';
 
 interface Point {
   x: number;
@@ -89,7 +91,13 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
     updateAnnotation(annotationId, updatedAnnotation);
   }, [updateAnnotation]);
 
-  if (!image) return null;
+  if (!image) {
+    return (
+      <div className="flex items-center justify-center h-96 bg-gray-100">
+        <div className="text-gray-500">画像を読み込み中...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -107,11 +115,13 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
                 key={annotation.id}
                 annotation={annotation as RectangleAnnotation}
                 onUpdate={(updatedAnnotation) => handleAnnotationUpdate(annotation.id, updatedAnnotation)}
+                isSelected={selectedAnnotationId === annotation.id}
               />
             ) : (
               <PolygonAnnotation
                 key={annotation.id}
                 annotation={annotation}
+                isSelected={selectedAnnotationId === annotation.id}
               />
             )
           ))}

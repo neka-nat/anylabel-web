@@ -1,1 +1,1 @@
-export * from './ImageDisplayArea';
+export { ImageDisplayArea } from './ImageDisplayArea';

@@ -1,15 +1,21 @@
-function stringToHash(str: string): number {
+function stringToColor(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0; // Convert to 32-bit integer
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return hash;
+
+  const c = (hash & 0x00FFFFFF)
+    .toString(16)
+    .toUpperCase();
+
+  return '#' + '00000'.substring(0, 6 - c.length) + c;
 }
 
 export function labelToColor(label: string): string {
-  const hash = stringToHash(label);
-  const hue = Math.abs(hash % 360); // 0-359 の範囲に制限
-  return `hsla(${hue}, 50%, 50%, 0.5)`;
+  const hex = stringToColor(label);
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  return `rgba(${r}, ${g}, ${b}, 0.5)`;
 }

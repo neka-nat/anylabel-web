@@ -1,5 +1,7 @@
+'use client';
+
 import { memo, useCallback, useRef } from 'react';
-import type { RectangleAnnotation } from '../../types/annotation';
+import type { RectangleAnnotation } from '@/types';
 import { Rect, Circle, Group } from 'react-konva';
 import type Konva from 'konva';
 
@@ -59,8 +61,8 @@ export const RectangleAnnotationComponent = memo(function RectangleAnnotationCom
 
   const handleResizeMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
     const position = e.target.position();
-    const newWidth = position.x - annotation.x;
-    const newHeight = position.y - annotation.y;
+    const newWidth = Math.max(10, position.x - annotation.x);
+    const newHeight = Math.max(10, position.y - annotation.y);
 
     onUpdate({
       width: newWidth,
@@ -88,17 +90,19 @@ export const RectangleAnnotationComponent = memo(function RectangleAnnotationCom
         onDragEnd={handleDragEnd}
         onDragMove={handleDragMove}
       />
-      <Circle
-        ref={handleRef}
-        x={annotation.x + annotation.width}
-        y={annotation.y + annotation.height}
-        radius={5}
-        fill={isSelected ? '#000' : '#666'}
-        draggable
-        onDragStart={handleResizeStart}
-        onDragEnd={handleResizeEnd}
-        onDragMove={handleResizeMove}
-      />
+      {isSelected && (
+        <Circle
+          ref={handleRef}
+          x={annotation.x + annotation.width}
+          y={annotation.y + annotation.height}
+          radius={5}
+          fill="#000"
+          draggable
+          onDragStart={handleResizeStart}
+          onDragEnd={handleResizeEnd}
+          onDragMove={handleResizeMove}
+        />
+      )}
     </Group>
   );
 });

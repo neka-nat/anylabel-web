@@ -17,6 +17,7 @@ interface AnnotationContextType {
   removeAnnotation: (annotationId: string) => void;
   selectAnnotation: (annotationId: string | undefined) => void;
   setAnnotationType: (type: AnnotationType) => void;
+  clearAnnotations: () => void;
 }
 
 const AnnotationContext = createContext<AnnotationContextType | null>(null);
@@ -68,6 +69,11 @@ export function AnnotationProvider({ children }: AnnotationProviderProps) {
     [selectedAnnotationId],
   );
 
+  const clearAnnotations = useCallback(() => {
+    setAnnotations([]);
+    setSelectedAnnotationId(undefined);
+  }, []);
+
   const selectAnnotation = useCallback((annotationId: string | undefined) => {
     setSelectedAnnotationId(annotationId);
   }, []);
@@ -85,6 +91,7 @@ export function AnnotationProvider({ children }: AnnotationProviderProps) {
     removeAnnotation,
     selectAnnotation,
     setAnnotationType,
+    clearAnnotations,
   };
 
   return (

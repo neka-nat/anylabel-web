@@ -24,4 +24,12 @@ export interface PolygonAnnotation extends BaseAnnotation {
   points: Point[];
 }
 
-export type Annotation = RectangleAnnotation | PolygonAnnotation;
+export interface SegmentAnnotation extends BaseAnnotation {
+  type: 'segment';
+  points: Point[];
+}
+
+export type Annotation =
+  | RectangleAnnotation
+  | PolygonAnnotation
+  | SegmentAnnotation;

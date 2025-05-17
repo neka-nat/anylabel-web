@@ -32,19 +32,30 @@ export const AnnotationList = memo(function AnnotationList({
         {annotations.map((annotation) => (
           <button
             key={annotation.id}
-            onClick={() => onSelectAnnotation(annotation.id === selectedAnnotationId ? undefined : annotation.id)}
+            onClick={() =>
+              onSelectAnnotation(
+                annotation.id === selectedAnnotationId
+                  ? undefined
+                  : annotation.id,
+              )
+            }
             className={`
               w-full px-4 py-2 text-left rounded
               transition-colors duration-200
-              ${selectedAnnotationId === annotation.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+              ${
+                selectedAnnotationId === annotation.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
               }
             `}
           >
             <div className="font-medium truncate">{annotation.label}</div>
             <div className="text-sm opacity-75 truncate">
-              {annotation.type === 'rectangle' ? '矩形' : 'ポリゴン'}
+              {annotation.type === 'rectangle'
+                ? '矩形'
+                : annotation.type === 'polygon'
+                  ? 'ポリゴン'
+                  : 'セグメント'}
             </div>
           </button>
         ))}

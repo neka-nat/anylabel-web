@@ -6,8 +6,15 @@ import type Konva from 'konva';
 import { v4 as uuidv4 } from 'uuid';
 import { PolygonAnnotation } from '@/components/Annotation/PolygonAnnotationComponent';
 import { RectangleAnnotationComponent } from '@/components/Annotation/RectangleAnnotationComponent';
+import { SegmentAnnotationComponent } from '@/components/Annotation/SegmentAnnotationComponent';
 import { useAnnotation } from '@/contexts/AnnotationContext';
-import type { RectangleAnnotation, Annotation, Point, PolygonAnnotation as PolygonAnnotationType } from '@/types';
+import type {
+  RectangleAnnotation,
+  Annotation,
+  Point,
+  PolygonAnnotation as PolygonAnnotationType,
+  SegmentAnnotation,
+} from '@/types';
 import { EditAnnotationUI } from '@/components/EditAnnotationUI';
 import { AnnotationList } from '@/components/AnnotationList';
 
@@ -15,7 +22,9 @@ interface ImageDisplayAreaProps {
   imageUrl: string;
 }
 
-export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: ImageDisplayAreaProps) {
+export const ImageDisplayArea = memo(function ImageDisplayArea({
+  imageUrl,
+}: ImageDisplayAreaProps) {
   const {
     annotations,
     selectedAnnotationId,
@@ -26,13 +35,17 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
   } = useAnnotation();
 
   const [rectangleStart, setRectangleStart] = useState<Point>();
-  const [previewRectangle, setPreviewRectangle] = useState<RectangleAnnotation>();
+  const [previewRectangle, setPreviewRectangle] =
+    useState<RectangleAnnotation>();
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
+  const [segmentPoints, setSegmentPoints] = useState<Point[]>([]);
+  const [isDrawingSegment, setIsDrawingSegment] = useState(false);
   const [image, setImage] = useState<HTMLImageElement>();
 
   const selectedAnnotation = useMemo(
-    () => annotations.find((annotation) => annotation.id === selectedAnnotationId),
-    [annotations, selectedAnnotationId]
+    () =>
+      annotations.find((annotation) => annotation.id === selectedAnnotationId),
+    [annotations, selectedAnnotationId],
   );
 
   useEffect(() => {
@@ -41,78 +54,117 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
     img.onload = () => setImage(img);
   }, [imageUrl]);
 
-  const handleImageClick = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
-    const { offsetX: x, offsetY: y } = event.evt;
-
-    if (currentAnnotationType === 'rectangle') {
-      if (!rectangleStart) {
-        setRectangleStart({ x, y });
-        return;
+  const handleMouseDown = useCallback(
+    (event: Konva.KonvaEventObject<MouseEvent>) => {
+      if (currentAnnotationType === 'segment') {
+        const { offsetX: x, offsetY: y } = event.evt;
+        setSegmentPoints([{ x, y }]);
+        setIsDrawingSegment(true);
       }
+    },
+    [currentAnnotationType],
+  );
 
-      const newAnnotation: RectangleAnnotation = {
-        id: uuidv4(),
-        type: 'rectangle',
-        label: '新規矩形',
-        x: rectangleStart.x,
-        y: rectangleStart.y,
-        width: x - rectangleStart.x,
-        height: y - rectangleStart.y,
-        color: 'rgba(0, 255, 0, 0.5)',
-      };
+  const handleImageClick = useCallback(
+    (event: Konva.KonvaEventObject<MouseEvent>) => {
+      const { offsetX: x, offsetY: y } = event.evt;
 
-      addAnnotation(newAnnotation);
-      setRectangleStart(undefined);
-      setPreviewRectangle(undefined);
-    } else {
-      const newPoint = { x, y };
-      const updatedPoints = [...polygonPoints, newPoint];
-      setPolygonPoints(updatedPoints);
+      if (currentAnnotationType === 'rectangle') {
+        if (!rectangleStart) {
+          setRectangleStart({ x, y });
+          return;
+        }
 
-      // ダブルクリックでポリゴンを完成させる
-      if (event.evt.detail === 2 && updatedPoints.length >= 3) {
-        const newAnnotation: PolygonAnnotationType = {
+        const newAnnotation: RectangleAnnotation = {
           id: uuidv4(),
-          type: 'polygon',
-          label: '新規ポリゴン',
-          points: updatedPoints,
+          type: 'rectangle',
+          label: '新規矩形',
+          x: rectangleStart.x,
+          y: rectangleStart.y,
+          width: x - rectangleStart.x,
+          height: y - rectangleStart.y,
           color: 'rgba(0, 255, 0, 0.5)',
         };
 
         addAnnotation(newAnnotation);
-        setPolygonPoints([]);
+        setRectangleStart(undefined);
+        setPreviewRectangle(undefined);
+      } else if (currentAnnotationType === 'polygon') {
+        const newPoint = { x, y };
+        const updatedPoints = [...polygonPoints, newPoint];
+        setPolygonPoints(updatedPoints);
+
+        // ダブルクリックでポリゴンを完成させる
+        if (event.evt.detail === 2 && updatedPoints.length >= 3) {
+          const newAnnotation: PolygonAnnotationType = {
+            id: uuidv4(),
+            type: 'polygon',
+            label: '新規ポリゴン',
+            points: updatedPoints,
+            color: 'rgba(0, 255, 0, 0.5)',
+          };
+
+          addAnnotation(newAnnotation);
+          setPolygonPoints([]);
+        }
       }
-    }
-  }, [addAnnotation, currentAnnotationType, polygonPoints, rectangleStart]);
+    },
+    [addAnnotation, currentAnnotationType, polygonPoints, rectangleStart],
+  );
 
-  const handleMouseMove = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
-    if (currentAnnotationType === 'rectangle' && rectangleStart) {
-      const { offsetX: x, offsetY: y } = event.evt;
-      setPreviewRectangle({
-        id: 'preview',
-        type: 'rectangle',
-        label: 'プレビュー',
-        x: rectangleStart.x,
-        y: rectangleStart.y,
-        width: x - rectangleStart.x,
-        height: y - rectangleStart.y,
-        color: 'rgba(0, 255, 0, 0.3)',
-      });
-    }
-  }, [currentAnnotationType, rectangleStart]);
+  const handleMouseMove = useCallback(
+    (event: Konva.KonvaEventObject<MouseEvent>) => {
+      if (currentAnnotationType === 'rectangle' && rectangleStart) {
+        const { offsetX: x, offsetY: y } = event.evt;
+        setPreviewRectangle({
+          id: 'preview',
+          type: 'rectangle',
+          label: 'プレビュー',
+          x: rectangleStart.x,
+          y: rectangleStart.y,
+          width: x - rectangleStart.x,
+          height: y - rectangleStart.y,
+          color: 'rgba(0, 255, 0, 0.3)',
+        });
+      } else if (currentAnnotationType === 'segment' && isDrawingSegment) {
+        const { offsetX: x, offsetY: y } = event.evt;
+        setSegmentPoints((prev) => [...prev, { x, y }]);
+      }
+    },
+    [currentAnnotationType, rectangleStart, isDrawingSegment],
+  );
 
-  const handleAnnotationUpdate = useCallback((
-    annotationId: string,
-    updatedAnnotation: Partial<Annotation>
-  ) => {
-    updateAnnotation(annotationId, updatedAnnotation);
-  }, [updateAnnotation]);
+  const handleMouseUp = useCallback(() => {
+    if (currentAnnotationType === 'segment' && isDrawingSegment) {
+      if (segmentPoints.length >= 3) {
+        const newAnnotation: SegmentAnnotation = {
+          id: uuidv4(),
+          type: 'segment',
+          label: '新規セグメント',
+          points: segmentPoints,
+          color: 'rgba(0, 255, 0, 0.5)',
+        };
+        addAnnotation(newAnnotation);
+      }
+      setSegmentPoints([]);
+      setIsDrawingSegment(false);
+    }
+  }, [addAnnotation, currentAnnotationType, isDrawingSegment, segmentPoints]);
+
+  const handleAnnotationUpdate = useCallback(
+    (annotationId: string, updatedAnnotation: Partial<Annotation>) => {
+      updateAnnotation(annotationId, updatedAnnotation);
+    },
+    [updateAnnotation],
+  );
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       setRectangleStart(undefined);
       setPreviewRectangle(undefined);
       setPolygonPoints([]);
+      setSegmentPoints([]);
+      setIsDrawingSegment(false);
     }
   }, []);
 
@@ -135,33 +187,44 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
         <div className="text-sm text-gray-500 mb-2">
           {currentAnnotationType === 'rectangle'
             ? '矩形: クリックして開始点を指定し、もう一度クリックして矩形を確定'
-            : 'ポリゴン: クリックして頂点を追加し、ダブルクリックで確定'
-          }
+            : currentAnnotationType === 'polygon'
+              ? 'ポリゴン: クリックして頂点を追加し、ダブルクリックで確定'
+              : 'セグメント: ドラッグして領域を描画し、マウスを離して確定'}
         </div>
         <Stage
           width={image.width}
           height={image.height}
           onClick={handleImageClick}
           onMouseMove={handleMouseMove}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
         >
           <Layer>
             <KonvaImage image={image} />
-            {annotations.map((annotation) => (
+            {annotations.map((annotation) =>
               annotation.type === 'rectangle' ? (
                 <RectangleAnnotationComponent
                   key={annotation.id}
                   annotation={annotation as RectangleAnnotation}
-                  onUpdate={(updatedAnnotation) => handleAnnotationUpdate(annotation.id, updatedAnnotation)}
+                  onUpdate={(updatedAnnotation) =>
+                    handleAnnotationUpdate(annotation.id, updatedAnnotation)
+                  }
                   isSelected={selectedAnnotationId === annotation.id}
                 />
-              ) : (
+              ) : annotation.type === 'polygon' ? (
                 <PolygonAnnotation
                   key={annotation.id}
                   annotation={annotation}
                   isSelected={selectedAnnotationId === annotation.id}
                 />
-              )
-            ))}
+              ) : (
+                <SegmentAnnotationComponent
+                  key={annotation.id}
+                  annotation={annotation as SegmentAnnotation}
+                  isSelected={selectedAnnotationId === annotation.id}
+                />
+              ),
+            )}
             {previewRectangle && (
               <RectangleAnnotationComponent
                 key={previewRectangle.id}
@@ -181,6 +244,18 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
                 isSelected={false}
               />
             )}
+            {isDrawingSegment && segmentPoints.length > 0 && (
+              <SegmentAnnotationComponent
+                annotation={{
+                  id: 'preview',
+                  type: 'segment',
+                  label: 'プレビュー',
+                  points: segmentPoints,
+                  color: 'rgba(0, 255, 0, 0.3)',
+                }}
+                isSelected={false}
+              />
+            )}
           </Layer>
         </Stage>
       </div>
@@ -193,7 +268,10 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({ imageUrl }: Ima
           <EditAnnotationUI
             annotation={selectedAnnotation}
             onUpdate={(updatedAnnotationData) =>
-              handleAnnotationUpdate(selectedAnnotation.id, updatedAnnotationData)
+              handleAnnotationUpdate(
+                selectedAnnotation.id,
+                updatedAnnotationData,
+              )
             }
           />
         )}

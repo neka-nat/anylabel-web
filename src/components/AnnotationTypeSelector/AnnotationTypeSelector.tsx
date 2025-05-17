@@ -15,9 +15,10 @@ export const AnnotationTypeSelector = memo(function AnnotationTypeSelector() {
           className={`
             flex-1 px-4 py-2 rounded-md
             transition-colors duration-200
-            ${currentAnnotationType === 'rectangle'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+            ${
+              currentAnnotationType === 'rectangle'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
             }
           `}
         >
@@ -28,15 +29,30 @@ export const AnnotationTypeSelector = memo(function AnnotationTypeSelector() {
           className={`
             flex-1 px-4 py-2 rounded-md
             transition-colors duration-200
-            ${currentAnnotationType === 'polygon'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+            ${
+              currentAnnotationType === 'polygon'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
             }
           `}
         >
           ポリゴン
         </button>
+        <button
+          onClick={() => setAnnotationType('segment')}
+          className={`
+            flex-1 px-4 py-2 rounded-md
+            transition-colors duration-200
+            ${
+              currentAnnotationType === 'segment'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+            }
+          `}
+        >
+          セグメント
+        </button>
       </div>
     </div>
   );
-}); 
+});

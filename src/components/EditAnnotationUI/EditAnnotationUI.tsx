@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useEffect, useState } from 'react';
+import { useAnnotation } from '@/contexts/AnnotationContext';
 import type { Annotation } from '@/types';
 import { labelToColor } from '@/utils/color';
 
@@ -20,6 +21,7 @@ export const EditAnnotationUI = memo(function EditAnnotationUI({
   annotation,
   onUpdate,
 }: EditAnnotationUIProps) {
+  const { removeAnnotation } = useAnnotation();
   const [label, setLabel] = useState('');
   const [color, setColor] = useState('');
 
@@ -83,6 +85,13 @@ export const EditAnnotationUI = memo(function EditAnnotationUI({
         <div className="text-sm text-gray-500">
           タイプ: {annotation.type === 'rectangle' ? '矩形' : 'ポリゴン'}
         </div>
+        <button
+          type="button"
+          onClick={() => removeAnnotation(annotation.id)}
+          className="w-full rounded-md bg-red-600 text-white py-2 mt-2 hover:bg-red-500"
+        >
+          削除
+        </button>
       </form>
     </div>
   );

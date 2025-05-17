@@ -8,12 +8,14 @@ import type Konva from 'konva';
 interface RectangleAnnotationProps {
   annotation: RectangleAnnotation;
   onUpdate: (updatedAnnotation: Partial<RectangleAnnotation>) => void;
+  onSelect?: () => void;
   isSelected?: boolean;
 }
 
 export const RectangleAnnotationComponent = memo(function RectangleAnnotationComponent({
   annotation,
   onUpdate,
+  onSelect,
   isSelected = false,
 }: RectangleAnnotationProps) {
   const handleRef = useRef<Konva.Circle>(null);
@@ -76,7 +78,7 @@ export const RectangleAnnotationComponent = memo(function RectangleAnnotationCom
   }, [annotation.x, annotation.y, onUpdate]);
 
   return (
-    <Group>
+    <Group onClick={onSelect}>
       <Rect
         x={annotation.x}
         y={annotation.y}

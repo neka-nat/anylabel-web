@@ -209,18 +209,27 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
                   onUpdate={(updatedAnnotation) =>
                     handleAnnotationUpdate(annotation.id, updatedAnnotation)
                   }
+                  onSelect={() => selectAnnotation(annotation.id)}
                   isSelected={selectedAnnotationId === annotation.id}
                 />
               ) : annotation.type === 'polygon' ? (
                 <PolygonAnnotation
                   key={annotation.id}
                   annotation={annotation}
+                  onUpdate={(updatedAnnotation) =>
+                    handleAnnotationUpdate(annotation.id, updatedAnnotation)
+                  }
+                  onSelect={() => selectAnnotation(annotation.id)}
                   isSelected={selectedAnnotationId === annotation.id}
                 />
               ) : (
                 <SegmentAnnotationComponent
                   key={annotation.id}
                   annotation={annotation as SegmentAnnotation}
+                  onUpdate={(updatedAnnotation) =>
+                    handleAnnotationUpdate(annotation.id, updatedAnnotation)
+                  }
+                  onSelect={() => selectAnnotation(annotation.id)}
                   isSelected={selectedAnnotationId === annotation.id}
                 />
               ),

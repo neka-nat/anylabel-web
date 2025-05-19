@@ -6,14 +6,12 @@ import type Konva from 'konva';
 import { v4 as uuidv4 } from 'uuid';
 import { PolygonAnnotation } from '@/components/Annotation/PolygonAnnotationComponent';
 import { RectangleAnnotationComponent } from '@/components/Annotation/RectangleAnnotationComponent';
-import { SegmentAnnotationComponent } from '@/components/Annotation/SegmentAnnotationComponent';
 import { useAnnotation } from '@/contexts/AnnotationContext';
 import type {
   RectangleAnnotation,
   Annotation,
   Point,
   PolygonAnnotation as PolygonAnnotationType,
-  SegmentAnnotation,
 } from '@/types';
 import { EditAnnotationUI } from '@/components/EditAnnotationUI';
 import { AnnotationList } from '@/components/AnnotationList';
@@ -29,6 +27,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
     annotations,
     selectedAnnotationId,
     currentAnnotationType,
+    polygonDrawMode,
     addAnnotation,
     selectAnnotation,
     updateAnnotation,
@@ -56,13 +55,13 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
 
   const handleMouseDown = useCallback(
     (event: Konva.KonvaEventObject<MouseEvent>) => {
-      if (currentAnnotationType === 'segment') {
+      if (currentAnnotationType === 'polygon' && polygonDrawMode === 'drag') {
         const { offsetX: x, offsetY: y } = event.evt;
         setSegmentPoints([{ x, y }]);
         setIsDrawingSegment(true);
       }
     },
-    [currentAnnotationType],
+    [currentAnnotationType, polygonDrawMode],
   );
 
   const handleImageClick = useCallback(
@@ -89,7 +88,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
         addAnnotation(newAnnotation);
         setRectangleStart(undefined);
         setPreviewRectangle(undefined);
-      } else if (currentAnnotationType === 'polygon') {
+      } else if (currentAnnotationType === 'polygon' && polygonDrawMode === 'click') {
         const newPoint = { x, y };
         const updatedPoints = [...polygonPoints, newPoint];
         setPolygonPoints(updatedPoints);
@@ -101,6 +100,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
             type: 'polygon',
             label: '新規ポリゴン',
             points: updatedPoints,
+            drawMode: 'click',
             color: 'rgba(0, 255, 0, 0.5)',
           };
 
@@ -126,7 +126,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
           height: y - rectangleStart.y,
           color: 'rgba(0, 255, 0, 0.3)',
         });
-      } else if (currentAnnotationType === 'segment' && isDrawingSegment) {
+      } else if (currentAnnotationType === 'polygon' && polygonDrawMode === 'drag' && isDrawingSegment) {
         const { offsetX: x, offsetY: y } = event.evt;
         setSegmentPoints((prev) => [...prev, { x, y }]);
       }
@@ -135,13 +135,14 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
   );
 
   const handleMouseUp = useCallback(() => {
-    if (currentAnnotationType === 'segment' && isDrawingSegment) {
+    if (currentAnnotationType === 'polygon' && polygonDrawMode === 'drag' && isDrawingSegment) {
       if (segmentPoints.length >= 3) {
-        const newAnnotation: SegmentAnnotation = {
+        const newAnnotation: PolygonAnnotationType = {
           id: uuidv4(),
-          type: 'segment',
-          label: '新規セグメント',
+          type: 'polygon',
+          label: '新規ポリゴン',
           points: segmentPoints,
+          drawMode: 'drag',
           color: 'rgba(0, 255, 0, 0.5)',
         };
         addAnnotation(newAnnotation);
@@ -149,7 +150,7 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
       setSegmentPoints([]);
       setIsDrawingSegment(false);
     }
-  }, [addAnnotation, currentAnnotationType, isDrawingSegment, segmentPoints]);
+  }, [addAnnotation, currentAnnotationType, polygonDrawMode, isDrawingSegment, segmentPoints]);
 
   const handleAnnotationUpdate = useCallback(
     (annotationId: string, updatedAnnotation: Partial<Annotation>) => {
@@ -187,9 +188,9 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
         <div className="text-sm text-gray-500 mb-2">
           {currentAnnotationType === 'rectangle'
             ? '矩形: クリックして開始点を指定し、もう一度クリックして矩形を確定'
-            : currentAnnotationType === 'polygon'
-              ? 'ポリゴン: クリックして頂点を追加し、ダブルクリックで確定'
-              : 'セグメント: ドラッグして領域を描画し、マウスを離して確定'}
+            : currentAnnotationType === 'polygon' && polygonDrawMode === 'click'
+              ? 'ポリゴン(クリックモード): クリックして頂点を追加し、ダブルクリックで確定'
+              : 'ポリゴン(ドラッグモード): ドラッグして領域を描画し、マウスを離して確定'}
         </div>
         <Stage
           width={image.width}
@@ -212,27 +213,17 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
                   onSelect={() => selectAnnotation(annotation.id)}
                   isSelected={selectedAnnotationId === annotation.id}
                 />
-              ) : annotation.type === 'polygon' ? (
+              ) : (
                 <PolygonAnnotation
                   key={annotation.id}
-                  annotation={annotation}
+                  annotation={annotation as PolygonAnnotationType}
                   onUpdate={(updatedAnnotation) =>
                     handleAnnotationUpdate(annotation.id, updatedAnnotation)
                   }
                   onSelect={() => selectAnnotation(annotation.id)}
                   isSelected={selectedAnnotationId === annotation.id}
                 />
-              ) : (
-                <SegmentAnnotationComponent
-                  key={annotation.id}
-                  annotation={annotation as SegmentAnnotation}
-                  onUpdate={(updatedAnnotation) =>
-                    handleAnnotationUpdate(annotation.id, updatedAnnotation)
-                  }
-                  onSelect={() => selectAnnotation(annotation.id)}
-                  isSelected={selectedAnnotationId === annotation.id}
-                />
-              ),
+              )
             )}
             {previewRectangle && (
               <RectangleAnnotationComponent
@@ -254,12 +245,13 @@ export const ImageDisplayArea = memo(function ImageDisplayArea({
               />
             )}
             {isDrawingSegment && segmentPoints.length > 0 && (
-              <SegmentAnnotationComponent
+              <PolygonAnnotation
                 annotation={{
                   id: 'preview',
-                  type: 'segment',
+                  type: 'polygon',
                   label: 'プレビュー',
                   points: segmentPoints,
+                  drawMode: 'drag',
                   color: 'rgba(0, 255, 0, 0.3)',
                 }}
                 isSelected={false}

@@ -22,14 +22,9 @@ export interface RectangleAnnotation extends BaseAnnotation {
 export interface PolygonAnnotation extends BaseAnnotation {
   type: 'polygon';
   points: Point[];
-}
-
-export interface SegmentAnnotation extends BaseAnnotation {
-  type: 'segment';
-  points: Point[];
+  drawMode?: 'click' | 'drag';  // Added drawMode to specify polygon creation method
 }
 
 export type Annotation =
   | RectangleAnnotation
-  | PolygonAnnotation
-  | SegmentAnnotation;
+  | PolygonAnnotation;

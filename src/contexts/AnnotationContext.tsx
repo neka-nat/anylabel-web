@@ -3,12 +3,13 @@
 import { createContext, useCallback, useContext, useState } from 'react';
 import type { Annotation } from '@/types';
 
-type AnnotationType = 'rectangle' | 'polygon' | 'segment';
+type AnnotationType = 'rectangle' | 'polygon';
 
 interface AnnotationContextType {
   annotations: Annotation[];
   selectedAnnotationId: string | undefined;
   currentAnnotationType: AnnotationType;
+  polygonDrawMode: 'click' | 'drag';  // Added: polygon draw mode
   addAnnotation: (annotation: Annotation) => void;
   updateAnnotation: (
     annotationId: string,
@@ -17,6 +18,7 @@ interface AnnotationContextType {
   removeAnnotation: (annotationId: string) => void;
   selectAnnotation: (annotationId: string | undefined) => void;
   setAnnotationType: (type: AnnotationType) => void;
+  setPolygonDrawMode: (mode: 'click' | 'drag') => void;  // Added: polygon draw mode setter
 }
 
 const AnnotationContext = createContext<AnnotationContextType | null>(null);
@@ -38,6 +40,7 @@ export function AnnotationProvider({ children }: AnnotationProviderProps) {
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string>();
   const [currentAnnotationType, setCurrentAnnotationType] =
     useState<AnnotationType>('rectangle');
+  const [polygonDrawMode, setPolygonDrawModeState] = useState<'click' | 'drag'>('click');
 
   const addAnnotation = useCallback((annotation: Annotation) => {
     setAnnotations((prev) => [...prev, annotation]);
@@ -76,15 +79,21 @@ export function AnnotationProvider({ children }: AnnotationProviderProps) {
     setCurrentAnnotationType(type);
   }, []);
 
+  const setPolygonDrawMode = useCallback((mode: 'click' | 'drag') => {
+    setPolygonDrawModeState(mode);
+  }, []);
+
   const value = {
     annotations,
     selectedAnnotationId,
     currentAnnotationType,
+    polygonDrawMode,
     addAnnotation,
     updateAnnotation,
     removeAnnotation,
     selectAnnotation,
     setAnnotationType,
+    setPolygonDrawMode,
   };
 
   return (
